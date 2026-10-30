@@ -1,0 +1,15 @@
+[package]
+name = "photo-convr"
+version = "0.1.0"
+edition = "2024"
+description = "A private, local photo converter"
+
+[dependencies]
+eframe = { version = "0.33", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+image = "0.25"
+rfd = "0.15"
+tempfile = "3"
+
+[profile.release]
+lto = "thin"
+strip = true
