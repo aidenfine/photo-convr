@@ -56,12 +56,15 @@ Inputs include HEIC/HEIF, PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, TGA, PNM, QOI, H
 
 ## Checks
 
+GitHub Actions runs formatting, Rust tests, Clippy, and Python packaging tests
+on macOS and Linux for every push and pull request. You can also run the
+`Tests` workflow manually. HEIC tests use the included fixture and an installed
+libheif decoder.
+
 ```sh
-cargo fmt --check
-cargo test
-cargo clippy --all-targets -- -D warnings
+make check
 ```
 
-Tests cover all output encoders, round trips for formats with enabled decoders, source preservation, content-based detection, invalid input, and alpha flattening.
+Tests cover all output encoders, round trips for formats with enabled decoders, source preservation, content-based detection, invalid input, alpha flattening, ICO resizing, failed-save cleanup, HEIC import, and packaging helpers.
 
 Implementation uses [eframe/egui](https://docs.rs/eframe/0.33.3/eframe/), [image](https://docs.rs/image/0.25.9/image/), and [rfd](https://docs.rs/rfd/0.15.4/rfd/).

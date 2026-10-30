@@ -234,6 +234,40 @@ mod tests {
         assert!(load(&path).is_err());
     }
     #[test]
+    fn ico_resizes_large_images_and_preserves_aspect_ratio() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("original.png");
+        DynamicImage::new_rgba8(512, 256).save(&source).unwrap();
+        let photo = load(&source).unwrap();
+        let destination = dir.path().join("icon.ico");
+
+        save(&photo, &destination, Output::Ico, 90).unwrap();
+
+        let decoded = image::open(destination).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (256, 128));
+        assert_eq!((photo.image.width(), photo.image.height()), (512, 256));
+    }
+
+    #[test]
+    fn failed_save_preserves_destination_and_removes_temporary_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("original.png");
+        DynamicImage::new_rgb8(2, 3).save(&source).unwrap();
+        let mut photo = load(&source).unwrap();
+        // PNG cannot encode an image with zero dimensions.
+        photo.image = DynamicImage::new_rgba8(0, 0);
+        let destination = dir.path().join("existing.png");
+        let original = b"existing destination contents";
+        std::fs::write(&destination, original).unwrap();
+
+        assert!(save(&photo, &destination, Output::Png, 90).is_err());
+
+        assert_eq!(std::fs::read(destination).unwrap(), original);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 2);
+        assert!(load(&source).is_ok());
+    }
+
+    #[test]
     fn alpha_flattens_onto_white() {
         let input = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
             1,
