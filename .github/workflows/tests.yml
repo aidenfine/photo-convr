@@ -33,7 +33,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libheif-examples libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+          sudo apt-get install -y libheif-examples libheif-plugin-libde265 libxkbcommon-dev libwayland-dev libgl1-mesa-dev
 
       - name: Install macOS HEIC decoder
         if: runner.os == 'macOS'

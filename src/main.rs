@@ -56,17 +56,18 @@ impl App {
         style.visuals.override_text_color = Some(INK);
         style.visuals.panel_fill = Color32::WHITE;
         style.visuals.selection.bg_fill = ACCENT;
-        style.visuals.selection.stroke = egui::Stroke::new(1.0, Color32::WHITE);
+        style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, Color32::WHITE);
         style.visuals.hyperlink_color = INK;
         style.visuals.widgets.hovered.bg_fill = Color32::from_gray(238);
         style.visuals.widgets.hovered.weak_bg_fill = Color32::from_gray(238);
-        style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, Color32::from_gray(170));
+        style.visuals.widgets.hovered.bg_stroke =
+            egui::Stroke::new(1.0_f32, Color32::from_gray(170));
         style.visuals.widgets.active.bg_fill = Color32::from_gray(220);
         style.visuals.widgets.active.weak_bg_fill = Color32::from_gray(220);
-        style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, INK);
-        style.visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, INK);
+        style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0_f32, INK);
+        style.visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0_f32, INK);
         style.visuals.widgets.inactive.bg_fill = Color32::from_gray(248);
-        style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, LINE);
+        style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0_f32, LINE);
         style.spacing.item_spacing = Vec2::new(10.0, 8.0);
         style.spacing.button_padding = Vec2::new(12.0, 6.0);
         style
@@ -256,7 +257,7 @@ impl App {
             .frame(
                 egui::Frame::new()
                     .fill(Color32::WHITE)
-                    .stroke(egui::Stroke::new(1.0, LINE))
+                    .stroke(egui::Stroke::new(1.0_f32, LINE))
                     .inner_margin(margin),
             )
             .show(ctx, |ui| {
@@ -305,7 +306,7 @@ impl App {
                     rect,
                     12.0,
                     fill,
-                    egui::Stroke::new(1.0, if hovering { INK } else { LINE }),
+                    egui::Stroke::new(1.0_f32, if hovering { INK } else { LINE }),
                     egui::StrokeKind::Inside,
                 );
                 if let (Some(texture), Some(photo)) = (&self.preview, &self.photo) {

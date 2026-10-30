@@ -22,13 +22,18 @@ fn is_heic(header: &[u8]) -> bool {
         return false;
     }
     let brands = &header[8..size.min(header.len())];
-    brands.chunks_exact(4).enumerate().any(|(index, brand)| {
-        index != 1
-            && matches!(
-                brand,
-                b"heic" | b"heix" | b"hevc" | b"hevx" | b"heim" | b"heis" | b"hevm" | b"hevs"
-            )
-    })
+    brands
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .enumerate()
+        .any(|(index, brand)| {
+            index != 1
+                && matches!(
+                    brand,
+                    b"heic" | b"heix" | b"hevc" | b"hevx" | b"heim" | b"heis" | b"hevm" | b"hevs"
+                )
+        })
 }
 
 pub fn decode(path: &Path) -> Result<image::DynamicImage, Box<dyn std::error::Error>> {
