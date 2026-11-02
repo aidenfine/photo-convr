@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -44,6 +44,19 @@ jobs:
           rustup toolchain install stable --profile minimal --component rustfmt --component clippy
           rustup default stable
 
+      - name: Install Windows HEIC decoder
+        id: msys2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-libheif
+
+      - name: Add Windows HEIC decoder to PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '"${{ steps.msys2.outputs.msys2-location }}\mingw64\bin" >> $env:GITHUB_PATH'
+
       - name: Check formatting
         run: cargo fmt --check
 
@@ -55,3 +68,18 @@ jobs:
 
       - name: Run packaging tests
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+      - name: Build Windows portable package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: python scripts/package_windows.py --msys-prefix "${{ steps.msys2.outputs.msys2-location }}\mingw64"
+
+      - name: Upload Windows portable package
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Photo-Convr-Windows-x64
+          path: |
+            dist/*-Windows-x64.zip
+            dist/*-Windows-x64.zip.sha256
+          if-no-files-found: error

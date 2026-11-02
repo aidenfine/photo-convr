@@ -104,3 +104,34 @@ page when ready. Publishing is a separate step.
 
 Apple references: [Developer ID distribution](https://developer.apple.com/macos/distribution/)
 and [notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
+
+## Windows releases
+
+Build on Windows x64 with Rust's MSVC toolchain, Visual Studio C++ build tools,
+Python 3.11+, and MSYS2 MINGW64's `mingw-w64-x86_64-libheif` package:
+
+```powershell
+python scripts/package_windows.py --msys-prefix C:/msys64/mingw64
+```
+
+The script builds the locked Cargo dependencies for `x86_64-pc-windows-msvc`,
+stages a portable folder, verifies HEIC decoding without MSYS2 on PATH, and
+creates a ZIP and SHA-256 checksum in `dist`. A failed decoder check prevents
+publishing a new ZIP. No upload happens locally. The Tests workflow uploads the
+ZIP and checksum as GitHub Actions artifacts after the Windows checks pass.
+
+Use a dedicated, minimal MSYS2 installation for release builds: the package
+includes **all DLLs in that prefix's bin directory**, optional libheif plugins,
+and all notices from `share/licenses`. This favors complete runtime dependencies
+over archive size. The current MSYS2 decoder is named
+[`heif-dec.exe`](https://packages.msys2.org/packages/mingw-w64-x86_64-libheif).
+The app looks beside its own executable before searching PATH and suppresses
+the helper's console window.
+
+The ZIP is unsigned and targets Windows x64; ARM64 and 32-bit packages are not
+built. Before a public release, test the extracted app on a clean Windows machine,
+including drag and drop, dialogs, HEIC import, and replacing an existing output.
+Review native dependency licenses and provide any required corresponding source;
+license notices alone do not fulfill every source redistribution obligation.
+Record the MSYS2 package versions used for a public release. Signing and public
+release publishing are separate steps.

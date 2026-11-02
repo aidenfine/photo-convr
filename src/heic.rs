@@ -6,6 +6,11 @@ use std::{
     process::Command,
 };
 
+#[cfg(windows)]
+const HELPER: &str = "heif-dec.exe";
+#[cfg(not(windows))]
+const HELPER: &str = "heif-convert";
+
 pub fn detected(file: &mut File) -> std::io::Result<bool> {
     let mut header = [0_u8; 4096];
     let len = file.read(&mut header)?;
@@ -57,7 +62,7 @@ pub fn decode(path: &Path) -> Result<image::DynamicImage, Box<dyn std::error::Er
             std::fs::remove_file(&png)?;
         }
         let bundled = std::env::current_exe().ok().and_then(|exe| {
-            let helper = exe.parent()?.join("heif-convert");
+            let helper = exe.parent()?.join(HELPER);
             helper.is_file().then_some(helper)
         });
         let installed = [
@@ -66,9 +71,21 @@ pub fn decode(path: &Path) -> Result<image::DynamicImage, Box<dyn std::error::Er
         ]
         .into_iter()
         .find(|tool| Path::new(tool).is_file())
-        .unwrap_or("heif-convert");
+        .unwrap_or(HELPER);
         let tool = bundled.unwrap_or_else(|| installed.into());
         let mut command = Command::new(&tool);
+        // GUI releases must not flash a console for each imported photo.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            if let Some(parent) = tool.parent() {
+                let plugins = parent.join("HeifPlugins");
+                if plugins.is_dir() {
+                    command.env("LIBHEIF_PLUGIN_PATH", plugins);
+                }
+            }
+        }
         if let Some(contents) = tool.parent().and_then(|dir| dir.parent()) {
             let plugins = contents.join("Resources/HeifPlugins");
             if plugins.is_dir() {
@@ -76,7 +93,7 @@ pub fn decode(path: &Path) -> Result<image::DynamicImage, Box<dyn std::error::Er
             }
         }
         let result = command.arg(&source).arg(&png).output()
-            .map_err(|e| format!("HEIC decoding requires heif-convert from libheif when the native decoder is unavailable. Install libheif with HEVC decoding enabled: {e}"))?;
+            .map_err(|e| format!("HEIC decoding requires {HELPER} from libheif when the native decoder is unavailable. Install libheif with HEVC decoding enabled: {e}"))?;
         if !result.status.success() {
             return Err(format!(
                 "HEIC decoding failed: {} {}",
