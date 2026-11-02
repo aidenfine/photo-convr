@@ -31,6 +31,37 @@ these developer tools.
 [macOS release instructions](packaging/README.md) for signing, notarization,
 architecture selection, minimum macOS requirements, and public distribution.
 
+## Build for Windows
+
+Windows x64 builds produce a portable ZIP: extract the entire archive and open
+`photo-convr.exe`. Keep its DLLs and HEIC decoder beside the executable. Users
+do not need Rust, MSYS2, or administrator access.
+
+On a Windows development machine, install the MSVC Rust toolchain, Visual Studio
+C++ build tools, Python 3.11+, and [MSYS2](https://www.msys2.org/). In the MSYS2
+MINGW64 shell, install the decoder:
+
+```sh
+pacman -S mingw-w64-x86_64-libheif
+```
+
+Then run in PowerShell from this repository:
+
+```powershell
+python scripts/package_windows.py --msys-prefix C:/msys64/mingw64
+```
+
+If Make is installed, `make windows-exe` builds only the executable at
+`target/x86_64-pc-windows-msvc/release/photo-convr.exe`. For the complete portable
+package with HEIC support, use `make windows-zip PYTHON=python`. Override
+`MSYS_PREFIX` if MSYS2 is installed elsewhere. Both targets require Windows build
+tools; they do not set up cross-compilation from macOS or Linux.
+
+This creates `dist/Photo-Convr-0.1.0-Windows-x64.zip` and its SHA-256 checksum.
+The builder tests HEIC decoding with MSYS2 removed from PATH. The ZIP is unsigned;
+Windows may show a reputation warning for downloaded builds. See
+[Windows packaging details](packaging/README.md#windows-releases).
+
 ## Use
 
 1. Drop a photo onto the window or click **Choose a photo**.
@@ -46,7 +77,7 @@ Outputs: **PNG, JPEG, WebP, AVIF, GIF, TIFF, BMP, ICO, TGA, PPM/PNM, QOI, Farbfe
 
 Inputs include HEIC/HEIF, PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, TGA, PNM, QOI, HDR, EXR, DDS, and Farbfeld. Camera RAW, SVG, and AVIF decoding are not included. AVIF encoding is included. This app does not claim to support every photo format.
 
-- HEIC/HEIF import uses the built-in macOS decoder (`sips`), with no extra installation for supported files. If the native decoder fails, packaged macOS apps use their bundled `heif-convert` fallback. For source builds, install it with `brew install libheif`. On Linux and Windows, install `heif-convert` from libheif with an HEVC decoder and put it on PATH. HEIC is an input format; output choices are listed above. Temporary decoded files stay local and are automatically deleted.
+- HEIC/HEIF import uses the built-in macOS decoder (`sips`), with no extra installation for supported files. If the native decoder fails, packaged macOS apps use their bundled `heif-convert` fallback. For source builds, install it with `brew install libheif`. Windows ZIPs include `heif-dec.exe` and its dependencies. For Windows source builds, put MSYS2's `mingw64/bin` on PATH. On Linux, install `heif-convert` from libheif with an HEVC decoder and put it on PATH. HEIC is an input format; output choices are listed above. Temporary decoded files stay local and are automatically deleted.
 - Conversion exports a single still image; animation and multi-page files use the first frame/page.
 - Metadata is not copied. Color profiles are not preserved or managed.
 - Most outputs use 8-bit color; Farbfeld uses 16-bit RGBA. This is not a lossless archival workflow for high bit depth sources.
@@ -57,7 +88,8 @@ Inputs include HEIC/HEIF, PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, TGA, PNM, QOI, H
 ## Checks
 
 GitHub Actions runs formatting, Rust tests, Clippy, and Python packaging tests
-on macOS and Linux for every push and pull request. You can also run the
+on macOS, Linux, and Windows for every push and pull request. Windows also builds
+and uploads a portable ZIP and checksum as workflow artifacts. You can also run the
 `Tests` workflow manually. HEIC tests use the included fixture and an installed
 libheif decoder.
 
