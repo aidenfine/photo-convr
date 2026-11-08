@@ -9,6 +9,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, mpsc},
     thread,
+    time::{Duration, Instant},
 };
 
 const INK: Color32 = Color32::from_gray(20);
@@ -40,6 +41,7 @@ struct App {
     quality: u8,
     busy: bool,
     status: Option<(bool, String)>,
+    toast_until: Option<Instant>,
     tx: mpsc::Sender<Event>,
     rx: mpsc::Receiver<Event>,
     #[cfg(test)]
@@ -85,6 +87,7 @@ impl App {
             quality: 90,
             busy: false,
             status: None,
+            toast_until: None,
             tx,
             rx,
             #[cfg(test)]
@@ -97,6 +100,7 @@ impl App {
         }
         self.busy = true;
         self.status = None;
+        self.toast_until = None;
         let tx = self.tx.clone();
         let ctx = ctx.clone();
         thread::spawn(move || {
@@ -147,6 +151,7 @@ impl App {
         }
         self.busy = true;
         self.status = None;
+        self.toast_until = None;
         let (tx, ctx, output, quality) = (self.tx.clone(), ctx.clone(), self.output, self.quality);
         thread::spawn(move || {
             let _ = tx.send(Event::Saved(convert::save(&photo, &path, output, quality)));
@@ -173,7 +178,8 @@ impl App {
                     self.status = Some((false, error))
                 }
                 Event::Saved(Ok(path)) => {
-                    self.status = Some((true, format!("Saved to {}", path.display())))
+                    self.status = Some((true, format!("Saved to {}", path.display())));
+                    self.toast_until = Some(Instant::now() + Duration::from_secs(3));
                 }
             }
         }
@@ -185,6 +191,31 @@ fn muted(ui: &mut egui::Ui, text: impl Into<String>) {
 }
 
 impl App {
+    fn draw_toast(&mut self, ctx: &egui::Context) {
+        let Some(until) = self.toast_until else {
+            return;
+        };
+        let remaining = until.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            self.toast_until = None;
+            return;
+        }
+        ctx.request_repaint_after(remaining);
+        egui::Area::new(egui::Id::new("conversion_toast"))
+            .anchor(egui::Align2::RIGHT_TOP, [-16.0, 16.0])
+            .order(egui::Order::Foreground)
+            .interactable(false)
+            .show(ctx, |ui| {
+                egui::Frame::new()
+                    .fill(INK)
+                    .corner_radius(8)
+                    .inner_margin(12)
+                    .show(ui, |ui| {
+                        ui.label(RichText::new("Photo converted").color(Color32::WHITE).size(13.0));
+                    });
+            });
+    }
+
     fn format_controls(&mut self, ui: &mut egui::Ui) {
         ui.label(RichText::new("Convert to").strong());
         ui.add_enabled_ui(!self.busy, |ui| {
@@ -204,8 +235,6 @@ impl App {
             let _ = dropdown;
             if self.output == Output::Jpeg {
                 ui.add(egui::Slider::new(&mut self.quality, 1..=100).text("Quality"));
-            } else {
-                muted(ui, self.output.description());
             }
         });
     }
@@ -214,7 +243,7 @@ impl App {
         let button = ui.add_enabled(
             self.photo.is_some() && !self.busy,
             egui::Button::new(
-                RichText::new("Convert & save  →")
+                RichText::new("Convert")
                     .color(Color32::WHITE)
                     .strong(),
             )
@@ -231,10 +260,8 @@ impl App {
         if self.busy {
             ui.horizontal(|ui| {
                 ui.spinner();
-                muted(ui, "Working on your photo…");
+                muted(ui, "Converting...");
             });
-        } else {
-            muted(ui, "Choose where to save. Your original is kept.");
         }
     }
 
@@ -246,13 +273,6 @@ impl App {
         };
         // Reserve the controls before allocating the preview. Image size can never
         // push the format dropdown or save button out of the window.
-        egui::TopBottomPanel::top("header")
-            .frame(egui::Frame::new().fill(Color32::WHITE).inner_margin(margin))
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new("photo convr").size(22.0).strong());
-                });
-            });
         egui::TopBottomPanel::bottom("conversion")
             .frame(
                 egui::Frame::new()
@@ -272,15 +292,6 @@ impl App {
                     self.format_controls(ui);
                     ui.add_space(4.0);
                     self.save_control(ui, ctx);
-                }
-                if let Some((_, message)) = &self.status {
-                    ui.add_space(4.0);
-                    egui::ScrollArea::vertical()
-                        .id_salt("status")
-                        .max_height(48.0)
-                        .show(ui, |ui| {
-                            ui.label(RichText::new(message).color(INK).size(13.0));
-                        });
                 }
             });
         egui::CentralPanel::default()
@@ -398,6 +409,7 @@ impl eframe::App for App {
             self.load(path, ctx);
         }
         self.draw(ctx);
+        self.draw_toast(ctx);
     }
 }
 

@@ -90,24 +90,7 @@ impl Output {
             Self::Farbfeld => ImageFormat::Farbfeld,
         }
     }
-    pub fn description(self) -> &'static str {
-        match self {
-            Self::Png => "Lossless detail. Supports transparency.",
-            Self::Jpeg => "Small files for everyday photography. Transparency becomes white.",
-            Self::WebP => "Lossless web images with transparency.",
-            Self::Avif => "Efficient modern compression. May take a little longer.",
-            Self::Gif => "A single frame with up to 256 colors.",
-            Self::Tiff => "High-quality images for print and editing.",
-            Self::Bmp => "Uncompressed bitmap images.",
-            Self::Ico => "An icon, scaled to fit 256 × 256 px.",
-            Self::Tga => "A classic format for graphics and textures.",
-            Self::Pnm => "Portable RGB pixels. Transparency becomes white.",
-            Self::Qoi => "Fast, lossless image compression.",
-            Self::Farbfeld => "Lossless 16-bit RGBA pixels.",
-        }
-    }
 }
-
 pub fn load(path: &Path) -> Result<Photo, String> {
     (|| -> Result<Photo, Box<dyn std::error::Error>> {
         let mut file = File::open(path)?;
